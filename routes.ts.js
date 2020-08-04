@@ -52,20 +52,28 @@ router.add("/events", async (req, res) => {
   await req.w.write(encodeHeader(res));
   await req.w.flush();
 
-  clients.push(req);
+  let guid = uuidv4();
+  while (clients.find(x => x.guid === guid)) guid = uuidv4();
+
+  clients.push({ guid, conn: req });
 });
 
 setInterval(async () => {
-  for (const request of clients) {
+  for (const client of clients) {
+    const peer = client.conn.w;
     try {
-      await request.w.write(
+      await peer.write(
         new TextEncoder().encode(
-          `data: ${JSON.stringify({ packet: "msg", content: "test" })}\n\n`
+          `data: ${JSON.stringify({
+            packet: "cons",
+            content: clients.length
+          })}\n\n`
         )
       );
-      await request.w.flush();
+      await peer.flush();
     } catch (err) {
-      clients.splice(clients.indexOf(request), 1);
+      console.log(`${client.guid} disconnected!`);
+      clients.splice(clients.indexOf(client), 1);
     }
   }
 }, 999);
@@ -75,11 +83,13 @@ router.add("/messages", async (req, res) => {
     new URL(req.url, "http://localhost:8080").searchParams.get("message")
   );
   for (const request of clients) {
+    const peer = request.conn.w;
+    console.log(peer);
     try {
-      await request.w.write(
+      await peer.write(
         new TextEncoder().encode(`data: ${JSON.stringify(message)}\n\n`)
       );
-      await request.w.flush();
+      await peer.flush();
     } catch (err) {
       clients.splice(clients.indexOf(request), 1);
     }

@@ -52,7 +52,9 @@
         id="result"
         class="col-6 bg-dark text-white terminal d-flex flex-column rounded"
       >
-        <span class="terminal-header"> output&gt;</span>
+        <span class="terminal-header">
+          output&gt; Connected: <span id="cons"></span
+        ></span>
         <div id="output" class="terminal-output flex-grow-1"></div>
       </div>
     </div>
@@ -70,15 +72,15 @@
       const join = force => {
         force && evtSource.close();
         evtSource = new EventSource(`/events`);
-        
+
         evtSource.addEventListener(
           "open",
           evt => {
-            console.warn("✔️listening.")
+            console.warn("✔️listening.");
           },
           false
         );
-        
+
         evtSource.addEventListener(
           "message",
           evt => {
@@ -95,6 +97,11 @@
 
                   //scroll
                   output.scrollTop = output.scrollHeight - output.clientHeight;
+                }
+                break;
+              case "cons":
+                {
+                  $("#cons").innerText = payload.content
                 }
                 break;
             }
