@@ -55,7 +55,13 @@ router.add("/events", async (req, res) => {
   let guid = uuidv4();
   while (clients.find(x => x.guid === guid)) guid = uuidv4();
 
-  clients.push({ guid, conn: req });
+  if (req.url.endsWith("?rejoin")) {
+    console.log(`⚪ [${guid}] reconnected!`);
+  } else {
+    clients.push({ guid, conn: req });
+
+    console.log(`🔵 [${guid}] connected!`);
+  }
 });
 
 setInterval(async () => {
@@ -72,7 +78,7 @@ setInterval(async () => {
       );
       await peer.flush();
     } catch (err) {
-      console.log(`${client.guid} disconnected!`);
+      console.log(`🔴 [${client.guid}] disconnected!`);
       clients.splice(clients.indexOf(client), 1);
     }
   }

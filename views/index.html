@@ -69,9 +69,9 @@
 
       //sse
       let evtSource = (window.evtSource = {});
-      const join = force => {
+      const join = (force, rejoined) => {
         force && evtSource.close();
-        evtSource = new EventSource(`/events`);
+        evtSource = new EventSource(`/events${rejoined ? "?rejoin" : ""}`);
 
         evtSource.addEventListener(
           "open",
@@ -112,7 +112,7 @@
       join();
 
       const rejoiner = setInterval(() => {
-        const rejoin = () => join(true);
+        const rejoin = () => join(true, true);
         evtSource.readyState === EventSource.CLOSED
           ? [console.warn("No connection, rejoining..."), rejoin()]
           : console.debug(
