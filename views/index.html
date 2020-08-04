@@ -71,7 +71,7 @@
       let evtSource = (window.evtSource = {});
       const join = (force, rejoined) => {
         force && evtSource.close();
-        evtSource = new EventSource(`/events${rejoined ? "?rejoin" : ""}`);
+        evtSource = new EventSource(`/events${rejoined ? `?rejoin&guid=${window.guid}` : ""}`);
 
         evtSource.addEventListener(
           "open",
@@ -97,6 +97,11 @@
 
                   //scroll
                   output.scrollTop = output.scrollHeight - output.clientHeight;
+                }
+                break;
+              case "guid":
+                {
+                  window.guid =  payload.content
                 }
                 break;
               case "cons":

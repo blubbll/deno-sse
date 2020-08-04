@@ -52,16 +52,30 @@ router.add("/events", async (req, res) => {
   await req.w.write(encodeHeader(res));
   await req.w.flush();
 
-  let guid = uuidv4();
-  while (clients.find(x => x.guid === guid)) guid = uuidv4();
+  let guid;
+  if (req.url.includes("?rejoin")) {
+    guid = req.url.split("guid=")[1];
 
-  if (req.url.endsWith("?rejoin")) {
     console.log(`⚪ [${guid}] reconnected!`);
   } else {
-    clients.push({ guid, conn: req });
+    guid = uuidv4();
+    while (clients.find(x => x.guid === guid)) guid = uuidv4();
+
+    const peer = req.w;
+    await req.w.write(
+      new TextEncoder().encode(
+        `data: ${JSON.stringify({
+          packet: "guid",
+          content: guid
+        })}\n\n`
+      )
+    );
+    await peer.flush();
 
     console.log(`🔵 [${guid}] connected!`);
   }
+
+  clients.push({ guid, conn: req });
 });
 
 setInterval(async () => {
