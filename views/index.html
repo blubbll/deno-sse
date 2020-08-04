@@ -1,0 +1,33 @@
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  <div id="messages" class="max-height: 500px">
+
+  </div>
+  <form id="form">
+    <input id="input" type="text">
+    <button type="submit">Envoyer</button>
+  </form>
+  <script>
+    const $messages = document.getElementById('messages')
+    const events = new EventSource('/events')
+    events.addEventListener('message', event => {
+      const $message = document.createElement('div')
+      $message.innerText = JSON.parse(event.data)
+      $messages.appendChild($message)
+    })
+
+    const $form = document.getElementById('form')
+    const $input = document.getElementById('input')
+
+    $form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      await fetch(`/messages?message=${encodeURIComponent($input.value)}`)
+    })
+  </script>
+</body>
+</html>

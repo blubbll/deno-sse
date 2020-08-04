@@ -1,0 +1,19 @@
+{
+  "start": "deno run --allow-all index.ts.js",
+  "install": "rm -rf .cache/deno",
+  "watch": {
+    "restart": {
+      "include": [
+        "\\.ts$",
+        "\\.js$"
+      ]
+    },
+    "install": {
+      "exclude": [
+        "\\.html$",
+        "\\.css$"
+      ]
+    },
+    "throttle": 500
+  }
+}
