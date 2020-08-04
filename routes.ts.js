@@ -1,6 +1,21 @@
-import { Router } from "./router.ts";
 import { delay } from "https://deno.land/std/async/mod.ts";
 import { ServerRequest } from "https://deno.land/std/http/server.ts";
+
+export class Router {
+  constructor() {
+    this.routes = [];
+  }
+  add(pathname, handler) {
+    const route = { pathname, handler };
+    this.routes.push(route);
+  }
+  match(pathname) {
+    for (const route of this.routes) {
+      if (route.pathname === pathname) return route;
+    }
+    return null;
+  }
+}
 
 const encodeHeader = res => {
   const protoMajor = 1;
@@ -27,7 +42,7 @@ router.add("/", async (req, res) => {
   req.respond(res);
 });
 
-let requests = [];
+let clients = [];
 
 router.add("/events", async (req, res) => {
   res.headers.set("Content-Type", "text/event-stream");
@@ -37,27 +52,47 @@ router.add("/events", async (req, res) => {
   await req.w.write(encodeHeader(res));
   await req.w.flush();
 
-  requests.push(req);
+  clients.push(req);
 });
 
-setInterval(()=>{
-  console.log(requests)
-}, 999)
+setInterval(async () => {
+  for (const request of clients) {
+    try {
+      await request.w.write(
+        new TextEncoder().encode(
+          `data: ${JSON.stringify({ packet: "msg", content: "test" })}\n\n`
+        )
+      );
+      await request.w.flush();
+    } catch (err) {
+      clients.splice(clients.indexOf(request), 1);
+    }
+  }
+}, 999);
 
 router.add("/messages", async (req, res) => {
   const message = String(
     new URL(req.url, "http://localhost:8080").searchParams.get("message")
   );
-  for (const request of requests) {
+  for (const request of clients) {
     try {
       await request.w.write(
         new TextEncoder().encode(`data: ${JSON.stringify(message)}\n\n`)
       );
       await request.w.flush();
     } catch (err) {
-      requests.splice(requests.indexOf(request), 1);
+      clients.splice(clients.indexOf(request), 1);
     }
   }
   res.body = "";
   req.respond(res);
 });
+
+//guid
+function uuidv4() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function(c) {
+    var r = (Math.random() * 16) | 0,
+      v = c == "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
