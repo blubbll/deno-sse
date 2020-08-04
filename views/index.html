@@ -19,8 +19,15 @@
         max-width: 100%;
         width: 50vw;
       }
+      .terminal-shadow{
+        -webkit-box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
+-moz-box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
+box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
+      }
       .terminal-header {
         color: cyan;
+        border-bottom: 1px dashed black;
+        margin-bottom: 4px;
       }
       .terminal-output {
         color: snow;
@@ -50,7 +57,7 @@
     <div class="d-flex align-items-center justify-content-center w-100 h-100">
       <div
         id="result"
-        class="col-6 bg-dark text-white terminal d-flex flex-column rounded"
+        class="col-6 bg-dark text-white terminal d-flex flex-column rounded terminal-shadow"
       >
         <span class="terminal-header">
           output&gt; Connected: <span id="cons"></span
