@@ -62,26 +62,58 @@
       const $ = document.querySelector.bind(document),
         $$ = document.querySelectorAll.bind(document);
 
+      //elem
       const output = $("#output");
-      const events = new EventSource("/events");
-      events.addEventListener("message", ev => {
-        const data = JSON.parse(event.data);
-        //show
-        switch (data.packet) {
-          case "msg":
-            {
-              output.innerHTML += `${output.innerHTML ? "<br>" : ""} ${
-                new Date()
-                  .toISOString()
-                  .split("T")[1]
-                  .split(".")[0]
-              }: ${data.content}`;
+
+      //sse
+      let evtSource = (window.evtSource = {});
+      const join = force => {
+        force && evtSource.close();
+        evtSource = new EventSource(`/events`);
+        
+        evtSource.addEventListener(
+          "open",
+          evt => {
+            console.warn("✔️listening.")
+          },
+          false
+        );
+        
+        evtSource.addEventListener(
+          "message",
+          evt => {
+            const payload = JSON.parse(evt.data);
+            switch (payload.packet) {
+              case "msg":
+                {
+                  output.innerHTML += `${output.innerHTML ? "<br>" : ""} ${
+                    new Date()
+                      .toISOString()
+                      .split("T")[1]
+                      .split(".")[0]
+                  }: ${payload.content}`;
+
+                  //scroll
+                  output.scrollTop = output.scrollHeight - output.clientHeight;
+                }
+                break;
             }
-            break;
-        }
-        //scroll
-        output.scrollTop = output.scrollHeight - output.clientHeight;
-      });
+          },
+          false
+        );
+      };
+      join();
+
+      const rejoiner = setInterval(() => {
+        const rejoin = () => join(true);
+        evtSource.readyState === EventSource.CLOSED
+          ? [console.warn("No connection, rejoining..."), rejoin()]
+          : console.debug(
+              `Connection ${
+                evtSource.readyState === 0 ? "waiting..." : "ok :)"
+              }`
+            );
+      }, 9999);
     </script>
   </body>
 </html>
