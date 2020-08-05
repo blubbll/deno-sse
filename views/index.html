@@ -19,10 +19,10 @@
         max-width: 100%;
         width: 50vw;
       }
-      .terminal-shadow{
-        -webkit-box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
--moz-box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
-box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
+      .terminal-shadow {
+        -webkit-box-shadow: 10px 10px 66px 2px rgba(0, 0, 0, 0.75);
+        -moz-box-shadow: 10px 10px 66px 2px rgba(0, 0, 0, 0.75);
+        box-shadow: 10px 10px 66px 2px rgba(0, 0, 0, 0.75);
       }
       .terminal-header {
         color: cyan;
@@ -51,6 +51,18 @@ box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
 
         background-color: white;
       }
+      .t-warn {
+        color: #e74c3c;
+      }
+      .t-suc {
+        color: #27ae60;
+      }
+      .t-def {
+        color: #95a5a6;
+      }
+      .t-err {
+        color: #e74c3c;
+      }
     </style>
   </head>
   <body class="w-100 h-100">
@@ -74,16 +86,50 @@ box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
       //elem
       const output = $("#output");
 
+      const twrite = (text, mode) => {
+        const out =
+          `${output.innerHTML ? "<br>" : ""}${
+            new Date()
+              .toISOString()
+              .split("T")[1]
+              .split(".")[0]
+          }` + `|<span class="t-${mode || "def"}">${text}</span>`;
+
+        output.innerHTML += out;
+      };
+
+      const tmsg = text => {
+        twrite(text);
+        console.debug(tmsg);
+      };
+
+      const twarn = text => {
+        twrite(text, "warn");
+        console.warn(text);
+      };
+
+      const terr = text => {
+        twrite(text, "err");
+        console.error(text);
+      };
+
+      const tsuc = text => {
+        twrite(text, "suc");
+        console.log(text);
+      };
+
       //sse
       let evtSource = (window.evtSource = {});
       const join = (force, rejoined) => {
         force && evtSource.close();
-        evtSource = new EventSource(`/events${rejoined ? `?rejoin&guid=${window.guid}` : ""}`);
+        evtSource = new EventSource(
+          `/events${rejoined ? `?rejoin&guid=${window.guid}` : ""}`
+        );
 
         evtSource.addEventListener(
           "open",
           evt => {
-            console.warn("✔️listening.");
+            tsuc("✔️listening.");
           },
           false
         );
@@ -95,12 +141,7 @@ box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
             switch (payload.packet) {
               case "msg":
                 {
-                  output.innerHTML += `${output.innerHTML ? "<br>" : ""} ${
-                    new Date()
-                      .toISOString()
-                      .split("T")[1]
-                      .split(".")[0]
-                  }: ${payload.content}`;
+                  tmsg(payload.content);
 
                   //scroll
                   output.scrollTop = output.scrollHeight - output.clientHeight;
@@ -108,12 +149,12 @@ box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
                 break;
               case "guid":
                 {
-                  window.guid =  payload.content
+                  window.guid = payload.content;
                 }
                 break;
               case "cons":
                 {
-                  $("#cons").innerText = payload.content
+                  $("#cons").innerText = payload.content;
                 }
                 break;
             }
@@ -126,8 +167,8 @@ box-shadow: 10px 10px 66px 2px rgba(0,0,0,0.75);
       const rejoiner = setInterval(() => {
         const rejoin = () => join(true, true);
         evtSource.readyState === EventSource.CLOSED
-          ? [console.warn("No connection, rejoining..."), rejoin()]
-          : console.debug(
+          ? [twarn("No connection, rejoining..."), rejoin()]
+          : tmsg(
               `Connection ${
                 evtSource.readyState === 0 ? "waiting..." : "ok :)"
               }`
