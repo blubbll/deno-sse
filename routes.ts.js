@@ -66,24 +66,30 @@ router.add("/events", async (req, res) => {
     guid = uuidv4();
     while (clients.find(x => x.guid === guid)) guid = uuidv4();
 
-    clients.push({ guid, conn: req });
+    const client = {
+      guid,
+      ip: req.headers.get("x-forwarded-for").split(",")[0],
+      conn: req
+    };
 
-    pushData(
-      req,
-      {
-        packet: "guid",
-        content: guid
-      },
-      false
-    );
+    clients.push(client);
 
-    
     pushData(req, {
-      packet: "msg",
-      content: `Welcome, ${guid}`
+      packet: "guid",
+      content: guid
     });
 
-    console.log(`🔵 [${guid}] connected!`);
+    pushData(req, {
+      packet: "msg",
+      content: `Welcome ${client.guid}!`
+    });
+
+    flushData(req, {
+      packet: "msg",
+      content: `Your IP: ${client.ip}`
+    });
+
+    console.log(`🔵 [${client.guid}] connected with ip ${client.ip}!`);
   }
 });
 
@@ -91,40 +97,46 @@ const removeClient = client => {
   console.log(`🔴 [${client.guid}] disconnected!`);
   clients.splice(clients.indexOf(client), 1);
 };
-const pushData = async (peer, payload, noflush) => {
+
+const sendData = async args => {
+  const peer = args.peer.w;
   try {
-    const _peer = peer.w;
-    await _peer.write(
-      new TextEncoder().encode(`data: ${JSON.stringify(payload)}\n\n`)
+    await peer.write(
+      new TextEncoder().encode(`data: ${JSON.stringify(args.payload)}\n\n`)
     );
-    if (noflush !== false) await _peer.flush();
+    if (args.flush === true) await peer.flush();
   } catch (e) {
-    const client = clients.find(x => x.conn === peer);
-    if (e.message.includes("Broken pipe")) removeClient(client);
+    const client = clients.find(x => x.conn === args.peer);
+
+    if (client && e.message.includes("Broken pipe")) removeClient(client);
   }
+};
+const flushData = async (peer, payload) => {
+  sendData({ peer, payload, flush: true });
+};
+const pushData = async (peer, payload) => {
+  sendData({ peer, payload });
 };
 
 setInterval(async () => {
   for (const client of clients) {
     const peer = client.conn.w;
     try {
-      pushData(client.conn, {
+      flushData(client.conn, {
         packet: "cons",
         content: clients.length
       });
-    } catch (err) {
-      console.log(`🔴 [${client.guid}] disconnected!`);
-      clients.splice(clients.indexOf(client), 1);
-    }
+    } catch (err) {}
   }
 }, 999);
 
-router.add("/messages", async (req, res) => {
+/*router.add("/messages", async (req, res) => {
   const message = String(
     new URL(req.url, "http://localhost:8080").searchParams.get("message")
   );
-  for (const request of clients) {
-    const peer = request.conn.w;
+  for (const _client of clients) {
+    const client = clients(Object.keys(_client)[0]);
+    const peer = client.conn.w;
     console.log(peer);
     try {
       await peer.write(
@@ -132,12 +144,12 @@ router.add("/messages", async (req, res) => {
       );
       await peer.flush();
     } catch (err) {
-      clients.splice(clients.indexOf(request), 1);
+      clients.splice(clients.indexOf(_client), 1);
     }
   }
   res.body = "";
   req.respond(res);
-});
+});*/
 
 //guid
 function uuidv4() {
